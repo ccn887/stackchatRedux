@@ -1,10 +1,14 @@
-import { createStore, applyMiddleware } from 'redux'
+import { createStore, applyMiddleware, compose } from 'redux'
 import loggerMiddleware from 'redux-logger'
 import thunkMiddleware from 'redux-thunk'
 import axios from 'axios'
+import socket from './socket'
+
+
 
 const GOT_MESSAGES_FROM_SERVER = 'GOT_MESSAGES_FROM_SERVER';
 const WRITE_MESSAGE = 'WRITE_MESSAGE';
+const REMOVE_MESSAGE = 'REMOVE_MESSAGE';
 const GOT_NEW_MESSAGE_FROM_SERVER = 'GOT_NEW_MESSAGE_FROM_SERVER';
 const UPDATE_NAME = 'UPDATE_NAME'
 
@@ -28,6 +32,9 @@ export const updateName = nameStr => {
 }
 export const gotNewMessage = message => {
   return { type: GOT_NEW_MESSAGE_FROM_SERVER, message: message }
+}
+export const removeMessage = message => {
+  return { type: REMOVE_MESSAGE, message: message.id }
 }
 
 export const fetchMessages = () => {
@@ -53,6 +60,16 @@ export const postMessages = (message) => {
       })
   }
 }
+export const deleteMessages = (messageId) => {
+
+  return function thunk(dispatch) {
+    return axios.delete(`/api/messages/${messageId}`)
+      .then(res => res.data)
+      .then(message => {
+        dispatch(removeMessage(messageId))
+      })
+  }
+}
 
 
 function reducer(state = initialState, action) {
@@ -61,6 +78,8 @@ function reducer(state = initialState, action) {
       return Object.assign({}, state, { messages: action.messages })
     case WRITE_MESSAGE:
       return Object.assign({}, state, { newMessageEntry: action.newMessageEntry })
+    case REMOVE_MESSAGE:
+      return Object.assign({}, state, { messages: state.messages.filter(message=> message.id !== action.message) })
     case UPDATE_NAME:
       return Object.assign({}, state, { nameEntry: action.nameEntry })
     case GOT_NEW_MESSAGE_FROM_SERVER:
@@ -68,8 +87,9 @@ function reducer(state = initialState, action) {
       return Object.assign({}, state, { messages: state.messages.concat(action.message) })
     default: return state
   }
-
 }
 
-const store = createStore(reducer, middy);
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+const store = createStore(reducer, composeEnhancers(middy))
+
 export default store

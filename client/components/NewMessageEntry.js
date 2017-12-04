@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import store, {writeMessage, gotNewMessage, postMessages} from '../store'
 import axios from 'axios'
 import socket from '../socket'
+import {emojify} from 'react-emojione'
 
 export default class NewMessageEntry extends Component {
   constructor(){
@@ -27,9 +28,9 @@ export default class NewMessageEntry extends Component {
     e.preventDefault()
     const channelId = +this.props.currentId
     const content = this.state.newMessageEntry
-    const author = this.state.message.author
+    const author = this.state.nameEntry
 
-    const thunk = postMessages({content: content, channelId: channelId, author: author})
+    const thunk = postMessages({content: content, channelId: channelId, name: author})
 
 
     store.dispatch(thunk)
@@ -46,7 +47,7 @@ export default class NewMessageEntry extends Component {
             value={this.state.newMessageEntry}
             onChange={this.handleChange}
             placeholder="Say something nice..."
-          />
+        />
           <span className="input-group-btn">
             <button className="btn btn-default" type="submit">Chat!</button>
           </span>
