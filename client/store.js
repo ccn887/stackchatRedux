@@ -1,22 +1,75 @@
-import { createStore } from 'redux'
+import { createStore, applyMiddleware } from 'redux'
+import loggerMiddleware from 'redux-logger'
+import thunkMiddleware from 'redux-thunk'
+import axios from 'axios'
 
 const GOT_MESSAGES_FROM_SERVER = 'GOT_MESSAGES_FROM_SERVER';
+const WRITE_MESSAGE = 'WRITE_MESSAGE';
+const GOT_NEW_MESSAGE_FROM_SERVER = 'GOT_NEW_MESSAGE_FROM_SERVER';
+const UPDATE_NAME = 'UPDATE_NAME'
+
 const initialState = {
-  messages: []
+  messages: [],
+  newMessageEntry: '',
+  nameEntry: ''
 }
+
+let middy = applyMiddleware(loggerMiddleware, thunkMiddleware)
 
 export const gotMessagesFromServer = messageArr => {
   return { type: GOT_MESSAGES_FROM_SERVER, messages: messageArr }
 }
 
+export const writeMessage = messageStr => {
+  return { type: WRITE_MESSAGE, newMessageEntry: messageStr }
+}
+export const updateName = nameStr => {
+  return { type: UPDATE_NAME, nameEntry: nameStr }
+}
+export const gotNewMessage = message => {
+  return { type: GOT_NEW_MESSAGE_FROM_SERVER, message: message }
+}
+
+export const fetchMessages = () => {
+
+  return function thunk(dispatch) {
+    return axios.get('/api/messages')
+      .then(res => res.data)
+      .then(messages => {
+        const action = gotMessagesFromServer(messages)
+        dispatch(action)
+      })
+  }
+}
+
+export const postMessages = (message) => {
+
+  return function thunk(dispatch) {
+    return axios.post('/api/messages', message)
+      .then(res => res.data)
+      .then(newMessage => {
+        dispatch(gotNewMessage(newMessage))
+        socket.emit('new-message', newMessage)
+      })
+  }
+}
+
+
 function reducer(state = initialState, action) {
   switch (action.type) {
     case GOT_MESSAGES_FROM_SERVER:
       return Object.assign({}, state, { messages: action.messages })
-     default: return state
+    case WRITE_MESSAGE:
+      return Object.assign({}, state, { newMessageEntry: action.newMessageEntry })
+    case UPDATE_NAME:
+      return Object.assign({}, state, { nameEntry: action.nameEntry })
+    case GOT_NEW_MESSAGE_FROM_SERVER:
+      let newMsgArr = state.messages.concat(action.message)
+      return Object.assign({}, state, { messages: state.messages.concat(action.message) })
+    default: return state
   }
 
 }
 
-const store = createStore(reducer);
+const store = createStore(reducer, middy);
 export default store
